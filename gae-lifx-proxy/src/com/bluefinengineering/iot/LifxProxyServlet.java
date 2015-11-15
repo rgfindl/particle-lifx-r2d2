@@ -18,6 +18,17 @@ public class LifxProxyServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String action = req.getParameter("action");
+        if (action.equals("on")) {
+            doOn(req, resp);
+        } else if (action.equals("off")) {
+            doOff(req, resp);
+        } else {
+            resp.setStatus(400);
+        }
+    }
+
+    protected void doOn(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String key = req.getParameter("key");
         String selector = req.getParameter("selector");
         String color = req.getParameter("color");
@@ -55,5 +66,44 @@ public class LifxProxyServlet extends HttpServlet {
             os.write(e.getMessage().getBytes());
             resp.setStatus(500);
         }
+    }
+
+
+    protected void doOff(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String key = req.getParameter("key");
+        String selector = req.getParameter("selector");
+
+        try {
+            URL url = new URL(LIFX_HOST+String.format(SET_STATE_PATH, selector));
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestProperty("Authorization", "Bearer "+key);
+            connection.setDoOutput(true);
+            connection.setRequestMethod("PUT");
+
+            OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
+            writer.write("{\"power\": \"off\"}");
+            writer.close();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String line;
+            StringBuilder output = new StringBuilder();
+
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            reader.close();
+
+            OutputStream os = resp.getOutputStream();
+            os.write(output.toString().getBytes());
+            resp.setStatus(200);
+            return;
+
+        } catch (Exception e) {
+
+            OutputStream os = resp.getOutputStream();
+            os.write(e.getMessage().getBytes());
+            resp.setStatus(500);
+        }
+
     }
 }

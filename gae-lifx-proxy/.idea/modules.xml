@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/lifx-temp-indicator-web.iml" filepath="$PROJECT_DIR$/lifx-temp-indicator-web.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gae-lifx-proxy.iml" filepath="$PROJECT_DIR$/gae-lifx-proxy.iml" />
     </modules>
   </component>
 </project>

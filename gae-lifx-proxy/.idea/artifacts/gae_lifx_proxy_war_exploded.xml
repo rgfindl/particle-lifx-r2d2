@@ -1,11 +1,11 @@
 <component name="ArtifactManager">
-  <artifact type="exploded-war" name="lifx-temp-indicator-web:war exploded">
-    <output-path>$PROJECT_DIR$/out/artifacts/lifx_temp_indicator_web_war_exploded</output-path>
+  <artifact type="exploded-war" name="gae-lifx-proxy:war exploded">
+    <output-path>$PROJECT_DIR$/out/artifacts/gae_lifx_proxy_war_exploded</output-path>
     <root id="root">
-      <element id="javaee-facet-resources" facet="lifx-temp-indicator-web/web/Web" />
+      <element id="javaee-facet-resources" facet="gae-lifx-proxy/web/Web" />
       <element id="directory" name="WEB-INF">
         <element id="directory" name="classes">
-          <element id="module-output" name="lifx-temp-indicator-web" />
+          <element id="module-output" name="gae-lifx-proxy" />
         </element>
         <element id="directory" name="lib">
           <element id="library" level="project" name="AppEngine API" />
