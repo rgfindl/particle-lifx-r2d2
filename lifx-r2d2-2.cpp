@@ -72,26 +72,32 @@ http_request_t request;
 http_response_t response;
 
 void setup() {
+    // Subscribe to the temperature produced by the particle chip outside my house.
     Particle.subscribe("outside-temp-f", tempHandler, MY_DEVICES);
     
+    // Open the serial port for writing.
     Serial.begin(9600);
-    pinMode(MotionSensorPin, INPUT);     // declare sensor as input
-    pinMode(PiezoPin, OUTPUT);          // declare buzzer as output
-    pinMode(ledRedPin, OUTPUT);
+    
+    // Register the pins. 
+    pinMode(MotionSensorPin, INPUT); 
+    pinMode(PiezoPin, OUTPUT);    
+    pinMode(ledRedPin, OUTPUT);          
     pinMode(ledGreenPin, OUTPUT);
   
+    // Initialize the LCD display.
     // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
     display.begin(SSD1306_SWITCHCAPVCC);
     display.clearDisplay();
     // init done
     
+    // Init the http request instance
     request.hostname = LIFX_HOST;
     request.port = 80;
     
+    // Turn the LIFX light off.  It may or may not be turned on but we don't know.
     turnLightOff();
     
-    r2d2Action();
-    //lets wait a few seconds for the sensor to calibrate...
+    //lets wait a few seconds for the display to calibrate...
     delay(5000);
     Serial.println("Ok!");
 }
@@ -99,16 +105,18 @@ void setup() {
 void loop() {
     
     if (lightOn && lightDuration <= LIGHT_TIMEOUT) {
-        // Update lightDuration
+        // The light is on.
+        // Update lightDuration.
         Serial.println("Update ligth duration");
         lightDuration += LOOP_DELAY;
         delay(LOOP_DELAY);
         
     } else if (lightOn && lightDuration > LIGHT_TIMEOUT) {
+        // The light is on.
         // Turn light off
         Serial.println("Turn light off");
         
-        if (turnLightOff() == 200) {
+        if (r2d2ActionOff() == 200) {
             lightOn = false;
             lightDuration = 0;
         }
@@ -120,8 +128,9 @@ void loop() {
         bool motionDetected = (digitalRead(MotionSensorPin) == HIGH);
         if (motionDetected && tempSet) {
             
+            // Trigger the R2D2 action which plays some R2D2 sounds, flashes some LED's, displays the temperature, and turns on the LIFX bulb.
             Serial.println("Turn light on");
-            r2d2Action();
+            r2d2ActionOn();
             if (turnLightOn() == 200) {
                 lightOn = true;
             }
@@ -129,62 +138,14 @@ void loop() {
     }
 }  
 
-int turnLightOff() {
-    display.clearDisplay();
-    display.display();
-    
-    char path[150];
-    sprintf(path, LIFX_OFF_PATH, LIFX_KEY, LIFX_SELECTOR);
-    request.path = path;
-    // Get request
-    http.get(request, response, headers);
-    Serial.print("Application>\tResponse status: ");
-    Serial.println(response.status);
-
-    Serial.print("Application>\tHTTP Response Body: ");
-    Serial.println(response.body);
-    return response.status;
-}
-
-int turnLightOn() {
-    
-    char path[150];
-    if (tempF >= HOT)
-        sprintf(path, LIFX_ON_PATH, LIFX_KEY, LIFX_SELECTOR, RED, LIFX_BRIGHTNESS, LIFX_DURATION);
-    else if (tempF <= COLD)
-        sprintf(path, LIFX_ON_PATH, LIFX_KEY, LIFX_SELECTOR, BLUE, LIFX_BRIGHTNESS, LIFX_DURATION);
-    else
-        sprintf(path, LIFX_ON_PATH, LIFX_KEY, LIFX_SELECTOR, YELLOW, LIFX_BRIGHTNESS, LIFX_DURATION);
-        
-    request.path = path;
-    // Get request
-    http.get(request, response, headers);
-    Serial.print("Application>\tResponse status: ");
-    Serial.println(response.status);
-
-    Serial.print("Application>\tHTTP Response Body: ");
-    Serial.println(response.body);
-    return response.status;
-}
-
-void beep(int speakerPin, float noteFrequency, long noteDuration) {
-    int x;
-    // Convert the frequency to microseconds
-    float microsecondsPerWave = 1000000/noteFrequency;
-    // Calculate how many milliseconds there are per HIGH/LOW cycles.
-    float millisecondsPerCycle = 1000/(microsecondsPerWave * 2);
-    // Multiply noteDuration * number or cycles per millisecond
-    float loopTime = noteDuration * millisecondsPerCycle;
-    // Play the note for the calculated loopTime.
-    for (x=0;x<loopTime;x++) {
-        digitalWrite(speakerPin,HIGH);
-        delayMicroseconds(microsecondsPerWave);
-        digitalWrite(speakerPin,LOW);
-        delayMicroseconds(microsecondsPerWave);
-    }
-}
-
-void r2d2Action() {
+//
+// Trigger the R2D2 Action
+// Beep like R2D2.
+// Flash the red and green LED's.
+// Display the temperature on the LCD display.
+// Turn the LIFX bulb on.
+//
+void r2d2ActionOn() {
     display.setTextSize(3);
     display.setTextColor(WHITE);
     display.setCursor(0,25);
@@ -215,6 +176,80 @@ void r2d2Action() {
     beep(PiezoPin, note_C8,100); //C
 }
 
+//
+// Turn off the LCD display and the LIFX bulb.
+//
+int r2d2ActionOff() {
+    display.clearDisplay();
+    display.display();
+    return turnLightOff();
+}
+
+//
+// Turn the LIFX light off.
+// 
+int turnLightOff() {
+    
+    char path[150];
+    sprintf(path, LIFX_OFF_PATH, LIFX_KEY, LIFX_SELECTOR);
+    request.path = path;
+    // Get request
+    http.get(request, response, headers);
+    Serial.print("Application>\tResponse status: ");
+    Serial.println(response.status);
+
+    Serial.print("Application>\tHTTP Response Body: ");
+    Serial.println(response.body);
+    return response.status;
+}
+
+//
+// Turn the LIFX light on.
+//
+int turnLightOn() {
+    
+    char path[150];
+    if (tempF >= HOT)
+        sprintf(path, LIFX_ON_PATH, LIFX_KEY, LIFX_SELECTOR, RED, LIFX_BRIGHTNESS, LIFX_DURATION);
+    else if (tempF <= COLD)
+        sprintf(path, LIFX_ON_PATH, LIFX_KEY, LIFX_SELECTOR, BLUE, LIFX_BRIGHTNESS, LIFX_DURATION);
+    else
+        sprintf(path, LIFX_ON_PATH, LIFX_KEY, LIFX_SELECTOR, YELLOW, LIFX_BRIGHTNESS, LIFX_DURATION);
+        
+    request.path = path;
+    // Get request
+    http.get(request, response, headers);
+    Serial.print("Application>\tResponse status: ");
+    Serial.println(response.status);
+
+    Serial.print("Application>\tHTTP Response Body: ");
+    Serial.println(response.body);
+    return response.status;
+}
+
+//
+// Send a beep to the buzzer
+//
+void beep(int speakerPin, float noteFrequency, long noteDuration) {
+    int x;
+    // Convert the frequency to microseconds
+    float microsecondsPerWave = 1000000/noteFrequency;
+    // Calculate how many milliseconds there are per HIGH/LOW cycles.
+    float millisecondsPerCycle = 1000/(microsecondsPerWave * 2);
+    // Multiply noteDuration * number or cycles per millisecond
+    float loopTime = noteDuration * millisecondsPerCycle;
+    // Play the note for the calculated loopTime.
+    for (x=0;x<loopTime;x++) {
+        digitalWrite(speakerPin,HIGH);
+        delayMicroseconds(microsecondsPerWave);
+        digitalWrite(speakerPin,LOW);
+        delayMicroseconds(microsecondsPerWave);
+    }
+}
+
+//
+// Callback handler to set the temperature sent from the particle chip outside my house
+// 
 void tempHandler(const char *event, const char *data) {
     Serial.println(event);
     Serial.println(data);
